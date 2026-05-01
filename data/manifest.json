@@ -1,6 +1,7 @@
 {
   "_comentario": "Lista de archivos CSV mensuales a cargar en el dashboard. Para agregar un mes nuevo, subí el archivo a data/csv/ y agregá su nombre al array.",
   "archivos": [
-    "2025-02.csv"
+    "2025-02.csv",
+    "2025-11.csv"
   ]
 }
