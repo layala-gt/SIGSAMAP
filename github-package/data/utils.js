@@ -110,7 +110,6 @@ window.SIGSA_UTILS = (function() {
     // Indexar columnas conocidas (tolerante)
     const idxDDRISS = findCol(headers, ["DDRISS", "Departamento"]);
     const idxDist = findCol(headers, ["DistritodeSalud", "Distrito de Salud", "Distrito"]);
-    const idxEstab = findCol(headers, ["Establecimientodesalud", "Establecimiento de salud", "Establecimiento", "Servicio de salud", "ServiciodeSalud"]);
     const idxFecha = findCol(headers, ["FechaConsulta", "Fecha Consulta", "Fecha"]);
     const idxDxType = findCol(headers, ["dx_type", "tipo", "tipo_dx"]);
     const idxHtnP = findCol(headers, ["htn_patient"]);
@@ -130,7 +129,6 @@ window.SIGSA_UTILS = (function() {
       const rec = {
         DDRISS: idxDDRISS !== -1 ? cols[idxDDRISS] : "",
         Distrito: idxDist !== -1 ? cols[idxDist] : "",
-        Establecimiento: idxEstab !== -1 ? cols[idxEstab] : "",
         FechaConsulta: fechaStr,
         _tipo: tipo,           // "HTA" | "DM2" | "HTA_DM" | "OTRO"
         _timestamp: ts,
@@ -177,20 +175,12 @@ window.SIGSA_UTILS = (function() {
       else if (r._tipo === "HTA_DM") acc.ambas++;
 
       const dist = (r.Distrito || "Sin distrito").trim();
-      if (!acc.distritos[dist]) acc.distritos[dist] = { distrito: dist, total: 0, hta: 0, dm2: 0, ambas: 0, establecimientos: {} };
+      if (!acc.distritos[dist]) acc.distritos[dist] = { distrito: dist, total: 0, hta: 0, dm2: 0, ambas: 0 };
       const dacc = acc.distritos[dist];
       dacc.total++;
       if (r._tipo === "HTA") dacc.hta++;
       else if (r._tipo === "DM2") dacc.dm2++;
       else if (r._tipo === "HTA_DM") dacc.ambas++;
-
-      const estab = (r.Establecimiento || "Sin establecimiento").trim() || "Sin establecimiento";
-      if (!dacc.establecimientos[estab]) dacc.establecimientos[estab] = { establecimiento: estab, total: 0, hta: 0, dm2: 0, ambas: 0 };
-      const eacc = dacc.establecimientos[estab];
-      eacc.total++;
-      if (r._tipo === "HTA") eacc.hta++;
-      else if (r._tipo === "DM2") eacc.dm2++;
-      else if (r._tipo === "HTA_DM") eacc.ambas++;
     });
 
     return map;

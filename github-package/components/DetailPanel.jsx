@@ -2,12 +2,9 @@
 // Muestra KPIs, tabla por distrito, exportable
 
 const DetailPanel = ({ deptoId, resumen, onClose, onCompare, comparedId, theme, totalNacional }) => {
-  const [expandidos, setExpandidos] = React.useState({});
   if (!deptoId) return null;
   const acc = resumen[deptoId];
   if (!acc) return null;
-
-  const toggle = (k) => setExpandidos(e => ({ ...e, [k]: !e[k] }));
 
   const t = theme || {};
   const distritos = Object.values(acc.distritos || {}).sort((a, b) => b.total - a.total);
@@ -24,8 +21,7 @@ const DetailPanel = ({ deptoId, resumen, onClose, onCompare, comparedId, theme, 
       display: "flex", flexDirection: "column", height: "100%",
       background: t.panelBg || "#ffffff",
       borderLeft: `1px solid ${t.border || "#e2e8f0"}`,
-      color: t.text || "#0f172a",
-      overflowY: "auto", overflowX: "hidden"
+      color: t.text || "#0f172a"
     }}>
       {/* Header */}
       <div style={{ padding: "20px 24px 16px", borderBottom: `1px solid ${t.border || "#e2e8f0"}` }}>
@@ -37,6 +33,9 @@ const DetailPanel = ({ deptoId, resumen, onClose, onCompare, comparedId, theme, 
             </div>
             <div style={{ fontSize: 22, fontWeight: 700, marginTop: 4, color: t.heading || "#0b2a6f" }}>
               {acc.nombre}
+            </div>
+            <div style={{ fontSize: 12, color: t.muted || "#64748b", marginTop: 2 }}>
+              Población estimada: {utils.fmtNum(acc.poblacion)}
             </div>
           </div>
           <button onClick={onClose} style={{
@@ -72,14 +71,11 @@ const DetailPanel = ({ deptoId, resumen, onClose, onCompare, comparedId, theme, 
       </div>
 
       {/* Tabla por distrito */}
-      <div>
+      <div style={{ flex: 1, overflowY: "auto" }}>
         <div style={{ padding: "16px 24px 8px" }}>
           <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.08em",
                         color: t.muted || "#64748b", textTransform: "uppercase" }}>
             Pacientes por distrito de salud
-          </div>
-          <div style={{ fontSize: 11, color: t.muted || "#64748b", marginTop: 2 }}>
-            Click en un distrito para ver sus servicios de salud
           </div>
         </div>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
@@ -100,34 +96,14 @@ const DetailPanel = ({ deptoId, resumen, onClose, onCompare, comparedId, theme, 
             )}
             {distritos.map((d, i) => {
               const maxTotal = distritos[0]?.total || 1;
-              const isOpen = !!expandidos[d.distrito];
-              const estabs = Object.values(d.establecimientos || {}).sort((a, b) => b.total - a.total);
               return (
-                <React.Fragment key={d.distrito}>
-                <tr style={{
+                <tr key={d.distrito} style={{
                   borderTop: `1px solid ${t.border || "#e2e8f0"}`,
-                  background: i % 2 === 0 ? "transparent" : (t.tableAltBg || "#fafbfc"),
-                  cursor: estabs.length ? "pointer" : "default"
-                }}
-                onClick={() => estabs.length && toggle(d.distrito)}>
+                  background: i % 2 === 0 ? "transparent" : (t.tableAltBg || "#fafbfc")
+                }}>
                   <td style={tdStyle(t)}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      {estabs.length > 0 && (
-                        <span style={{
-                          display: "inline-block", width: 14, fontSize: 10,
-                          color: t.muted || "#64748b",
-                          transform: isOpen ? "rotate(90deg)" : "rotate(0deg)",
-                          transition: "transform 150ms"
-                        }}>▶</span>
-                      )}
-                      <span style={{ fontWeight: 600 }}>{d.distrito}</span>
-                      {estabs.length > 0 && (
-                        <span style={{ fontSize: 10, color: t.muted || "#64748b", fontWeight: 500 }}>
-                          · {estabs.length} {estabs.length === 1 ? "servicio" : "servicios"}
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ marginTop: 4, marginLeft: estabs.length ? 20 : 0, height: 3, background: t.barBg || "#e2e8f0", borderRadius: 2, overflow: "hidden" }}>
+                    <div>{d.distrito}</div>
+                    <div style={{ marginTop: 4, height: 3, background: t.barBg || "#e2e8f0", borderRadius: 2, overflow: "hidden" }}>
                       <div style={{ height: "100%", width: `${(d.total / maxTotal) * 100}%`,
                                     background: t.accent || "#1d4ed8" }}/>
                     </div>
@@ -137,24 +113,6 @@ const DetailPanel = ({ deptoId, resumen, onClose, onCompare, comparedId, theme, 
                   <td style={{...tdStyle(t), textAlign: "right", fontVariantNumeric: "tabular-nums", color: "#7c3aed"}}>{utils.fmtNum(d.ambas)}</td>
                   <td style={{...tdStyle(t), textAlign: "right", fontWeight: 600, fontVariantNumeric: "tabular-nums"}}>{utils.fmtNum(d.total)}</td>
                 </tr>
-                {isOpen && estabs.map((e, j) => (
-                  <tr key={d.distrito + "/" + e.establecimiento} style={{
-                    background: t.tableAltBg || "#fafbfc",
-                    borderTop: `1px solid ${t.border || "#e2e8f0"}`
-                  }}>
-                    <td style={{...tdStyle(t), paddingLeft: 48, paddingTop: 6, paddingBottom: 6}}>
-                      <div style={{ fontSize: 12, color: t.text || "#0f172a" }}>
-                        <span style={{ color: t.muted || "#64748b", marginRight: 6 }}>↳</span>
-                        {e.establecimiento}
-                      </div>
-                    </td>
-                    <td style={{...tdStyle(t), textAlign: "right", fontVariantNumeric: "tabular-nums", fontSize: 12, paddingTop: 6, paddingBottom: 6, color: t.muted || "#64748b"}}>{utils.fmtNum(e.hta)}</td>
-                    <td style={{...tdStyle(t), textAlign: "right", fontVariantNumeric: "tabular-nums", fontSize: 12, paddingTop: 6, paddingBottom: 6, color: t.muted || "#64748b"}}>{utils.fmtNum(e.dm2)}</td>
-                    <td style={{...tdStyle(t), textAlign: "right", fontVariantNumeric: "tabular-nums", fontSize: 12, paddingTop: 6, paddingBottom: 6, color: "#7c3aed"}}>{utils.fmtNum(e.ambas)}</td>
-                    <td style={{...tdStyle(t), textAlign: "right", fontVariantNumeric: "tabular-nums", fontSize: 12, paddingTop: 6, paddingBottom: 6, fontWeight: 600}}>{utils.fmtNum(e.total)}</td>
-                  </tr>
-                ))}
-                </React.Fragment>
               );
             })}
           </tbody>

@@ -30,32 +30,37 @@ const Dashboard = ({ theme, variantLabel }) => {
   }, [registros]);
 
   const mesesDisp = React.useMemo(() => {
-    if (año === "todos") return [];
     const set = new Set();
     registros.forEach(r => {
       if (r._timestamp) {
         const d = new Date(r._timestamp);
-        if (d.getFullYear() === +año) set.add(d.getMonth());
+        if (año === "todos" || d.getFullYear() === +año) {
+          set.add(d.getMonth());
+        }
       }
     });
     return [...set].sort((a, b) => a - b);
   }, [registros, año]);
 
-  // El usuario DEBE elegir un año Y un mes; sin ambos, no se calcula nada
-  const periodoCompleto = año !== "todos" && mes !== "todos";
-
   const filtros = React.useMemo(() => {
-    if (!periodoCompleto) return { tipo, desde: null, hasta: null };
-    const y = +año;
-    const m = +mes;
-    const desde = new Date(y, m, 1).getTime();
-    const hasta = new Date(y, m + 1, 0, 23, 59, 59).getTime();
+    let desde = null, hasta = null;
+    if (año !== "todos") {
+      const y = +año;
+      if (mes !== "todos") {
+        const m = +mes;
+        desde = new Date(y, m, 1).getTime();
+        hasta = new Date(y, m + 1, 0, 23, 59, 59).getTime();
+      } else {
+        desde = new Date(y, 0, 1).getTime();
+        hasta = new Date(y, 11, 31, 23, 59, 59).getTime();
+      }
+    }
     return { tipo, desde, hasta };
-  }, [tipo, mes, año, periodoCompleto]);
+  }, [tipo, mes, año]);
 
   const resumen = React.useMemo(
-    () => periodoCompleto ? utils.resumenPorDepartamento(registros, filtros) : {},
-    [registros, filtros, periodoCompleto]
+    () => utils.resumenPorDepartamento(registros, filtros),
+    [registros, filtros]
   );
 
   const totalNacional = React.useMemo(() => {
@@ -181,6 +186,11 @@ const Dashboard = ({ theme, variantLabel }) => {
         gap: 24, flexWrap: "wrap"
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: 6, background: t.accent,
+            color: "#fff", display: "flex", alignItems: "center", justifyContent: "center",
+            fontWeight: 700, fontSize: 14, letterSpacing: "0.05em"
+          }}>+</div>
           <div>
             <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.1em",
                           color: t.muted, textTransform: "uppercase" }}>
@@ -284,28 +294,22 @@ const Dashboard = ({ theme, variantLabel }) => {
             display: "flex", padding: "16px 28px", gap: 32,
             borderBottom: `1px solid ${t.border}`, background: t.panelBg
           }}>
-            <NationalKPI label="Pacientes totales" value={periodoCompleto && registros.length ? utils.fmtNum(totalNacional.total) : "—"} theme={t} />
+            <NationalKPI label="Pacientes totales" value={registros.length ? utils.fmtNum(totalNacional.total) : "—"} theme={t} />
             <NationalKPI label="Solo HTA"
-                         value={periodoCompleto && registros.length ? utils.fmtNum(totalNacional.hta) : "—"}
-                         sub={periodoCompleto && registros.length ? `${utils.pct(totalNacional.hta, totalNacional.total).toFixed(1)}% del total` : null}
+                         value={registros.length ? utils.fmtNum(totalNacional.hta) : "—"}
+                         sub={registros.length ? `${utils.pct(totalNacional.hta, totalNacional.total).toFixed(1)}% del total` : null}
                          theme={t} accent="#1d4ed8" />
             <NationalKPI label="Solo DM2"
-                         value={periodoCompleto && registros.length ? utils.fmtNum(totalNacional.dm2) : "—"}
-                         sub={periodoCompleto && registros.length ? `${utils.pct(totalNacional.dm2, totalNacional.total).toFixed(1)}% del total` : null}
+                         value={registros.length ? utils.fmtNum(totalNacional.dm2) : "—"}
+                         sub={registros.length ? `${utils.pct(totalNacional.dm2, totalNacional.total).toFixed(1)}% del total` : null}
                          theme={t} accent="#0891b2" />
             <NationalKPI label="HTA + DM2"
-                         value={periodoCompleto && registros.length ? utils.fmtNum(totalNacional.ambas) : "—"}
-                         sub={periodoCompleto && registros.length ? `${utils.pct(totalNacional.ambas, totalNacional.total).toFixed(1)}% del total` : null}
+                         value={registros.length ? utils.fmtNum(totalNacional.ambas) : "—"}
+                         sub={registros.length ? `${utils.pct(totalNacional.ambas, totalNacional.total).toFixed(1)}% del total` : null}
                          theme={t} accent="#7c3aed" />
             <div style={{ flex: 1 }}></div>
             <div style={{ alignSelf: "center", fontSize: 11, color: t.muted }}>
-              {!periodoCompleto && registros.length > 0 && (
-                <span style={{ background: "#fef3c7", color: "#92400e", padding: "4px 10px",
-                               borderRadius: 4, fontWeight: 600 }}>
-                  Selecciona un año y un mes para ver los datos →
-                </span>
-              )}
-              {periodoCompleto && comparing && (
+              {comparing && (
                 <span style={{ background: "#fef3c7", color: "#92400e", padding: "4px 10px",
                                borderRadius: 4, fontWeight: 600 }}>
                   Selecciona otro departamento para comparar →
@@ -326,31 +330,8 @@ const Dashboard = ({ theme, variantLabel }) => {
                 onSelect={handleSelect}
                 searchTerm={search}
                 theme={t.map}
-                interactive={periodoCompleto}
               />
             </div>
-            {registros.length > 0 && !periodoCompleto && (
-              <div style={{
-                position: "absolute", inset: 0,
-                display: "flex", flexDirection: "column",
-                alignItems: "center", justifyContent: "center",
-                background: "rgba(248, 250, 252, 0.85)",
-                backdropFilter: "blur(2px)", pointerEvents: "auto"
-              }}>
-                <div style={{
-                  width: 56, height: 56, borderRadius: "50%",
-                  background: "#fef3c7", color: "#92400e",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 26, fontWeight: 700, marginBottom: 16
-                }}>📅</div>
-                <div style={{ fontSize: 18, fontWeight: 700, color: t.heading, marginBottom: 6 }}>
-                  Selecciona un año y un mes
-                </div>
-                <div style={{ fontSize: 13, color: t.muted, maxWidth: 460, textAlign: "center", lineHeight: 1.5 }}>
-                  Para evitar contar pacientes recurrentes en varios meses, el tablero requiere que elijas un periodo específico antes de mostrar los datos.
-                </div>
-              </div>
-            )}
             {registros.length === 0 && (
               <div style={{
                 position: "absolute", inset: 0,
@@ -423,7 +404,7 @@ const Dashboard = ({ theme, variantLabel }) => {
         {/* Panel detalle */}
         {selected && (
           <div style={{ width: 460, display: "flex", flexDirection: "column", minHeight: 0 }}>
-            <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+            <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column" }}>
               <window.DetailPanel
                 deptoId={selected}
                 resumen={resumen}
